@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACEAPP · Inteligencia de Datos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0c1811; --bg2:#101d15; --bg3:#152219;
+  --paper:#ede4d0; --paper2:#e3d8c1;
+  --ink:#f1e9d7; --dim:#c4b9a6; --mu:#847b6d;
+  --red:#d44829; --amber:#e4a035; --leaf:#6a9b50;
+  --ln:rgba(241,233,215,.12); --lns:rgba(241,233,215,.32);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:'Inter Tight',sans-serif;overflow-x:hidden;cursor:none}
+::selection{background:var(--red);color:var(--ink)}
+
+/* CURSOR */
+#cur{position:fixed;width:9px;height:9px;border-radius:50%;background:var(--red);pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:difference}
+#cur-r{position:fixed;width:30px;height:30px;border-radius:50%;border:1px solid rgba(212,72,41,.45);pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .25s,height .25s}
+
+/* FIXED BG */
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);mix-blend-mode:screen;will-change:transform}
+.o1{width:900px;height:900px;background:radial-gradient(circle,rgba(30,80,50,.55),transparent 70%);top:-200px;right:-200px;opacity:.6}
+.o2{width:600px;height:600px;background:radial-gradient(circle,rgba(120,35,15,.6),transparent 70%);top:35%;left:-120px;opacity:.5}
+.o3{width:500px;height:500px;background:radial-gradient(circle,rgba(160,120,20,.4),transparent 70%);top:65%;right:5%;opacity:.45}
+.o4{width:350px;height:350px;background:radial-gradient(circle,rgba(20,60,38,.7),transparent 70%);top:15%;left:35%;opacity:.4}
+/* grain */
+#bg::after{content:'';position:absolute;inset:0;opacity:.055;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E")}
+
+/* 3D FLOATING RINGS (background) */
+#rings{position:fixed;inset:0;z-index:1;pointer-events:none;perspective:1000px;transform-style:preserve-3d}
+.ring{position:absolute;border-radius:50%;border:1px solid;transform-style:preserve-3d}
+.rg1{width:600px;height:600px;border-color:rgba(212,72,41,.08);top:-100px;right:-100px;animation:spin1 40s linear infinite}
+.rg2{width:400px;height:400px;border-color:rgba(228,160,53,.07);top:30%;left:-80px;animation:spin2 55s linear infinite reverse;border-style:dashed}
+.rg3{width:280px;height:280px;border-color:rgba(106,155,80,.09);bottom:10%;right:15%;animation:spin1 30s linear infinite}
+@keyframes spin1{to{transform:rotateX(360deg) rotateZ(20deg)}}
+@keyframes spin2{to{transform:rotateY(360deg) rotateZ(-15deg)}}
+
+/* PROGRESS */
+#prog{position:fixed;top:0;left:0;height:2px;background:var(--red);z-index:600;width:0;transition:width .08s linear}
+
+/* TOPBAR */
+#topbar{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:15px 52px;
+  transition:background .4s,backdrop-filter .4s;
+}
+#topbar.sc{background:rgba(12,24,17,.8);backdrop-filter:blur(20px)}
+.logo-w{display:flex;align-items:center;gap:10px}
+.logo-w img{width:38px;height:38px;border-radius:50%;background:#f0e8d6;padding:3px;object-fit:contain}
+.logo-w span{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink);opacity:.9}
+.tbr{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--mu)}
+
+/* SIDENAV */
+#snav{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:500;display:flex;flex-direction:column;gap:9px;align-items:flex-end}
+.sni{display:flex;align-items:center;gap:9px;cursor:pointer;opacity:.28;transition:opacity .3s}
+.sni:hover,.sni.on{opacity:1}
+.sni .snl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink);white-space:nowrap;opacity:0;transform:translateX(5px);transition:opacity .22s,transform .22s}
+.sni:hover .snl,.sni.on .snl{opacity:1;transform:translateX(0)}
+.sni.on .snl{color:var(--red)}
+.snd{width:5px;height:5px;border-radius:50%;background:var(--mu);transition:background .3s,width .3s,height .3s;flex-shrink:0}
+.sni.on .snd{background:var(--red);width:7px;height:7px}
+
+/* CONTENT */
+#content{position:relative;z-index:10}
+
+/* SECTION BASE */
+section{
+  position:relative;min-height:100vh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:120px 110px 80px;
+}
+
+/* KICKER */
+.kk{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--red);font-weight:500;display:flex;align-items:center;gap:9px}
+.kk::before{content:"";width:20px;height:1px;background:var(--red)}
+.kk.dk{color:#8b3820}.kk.dk::before{background:#8b3820}
+.kk.am{color:var(--amber)}.kk.am::before{background:var(--amber)}
+
+/* TYPE */
+h1.disp{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(54px,7vw,128px);line-height:.9;letter-spacing:-.026em;font-variation-settings:'opsz' 144}
+h1.disp em{font-style:italic;font-weight:500;color:var(--red)}
+h2.sec{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(32px,4vw,70px);line-height:1;letter-spacing:-.02em;font-variation-settings:'opsz' 96}
+h2.sec em{font-style:italic;color:var(--red)}
+
+/* REVEAL */
+.r{opacity:0;transform:translateY(26px) translateZ(-10px);transition:opacity .72s cubic-bezier(.22,.61,.36,1),transform .72s cubic-bezier(.22,.61,.36,1)}
+.r.v{opacity:1;transform:translateY(0) translateZ(0)}
+.r.d1{transition-delay:.07s}.r.d2{transition-delay:.15s}.r.d3{transition-delay:.24s}
+.r.d4{transition-delay:.33s}.r.d5{transition-delay:.43s}.r.d6{transition-delay:.54s}.r.d7{transition-delay:.66s}
+
+/* ════════════════ HERO ════════════════ */
+#s-hero{min-height:100vh;padding-top:0;justify-content:flex-end;padding-bottom:90px}
+.hero-g{display:grid;grid-template-columns:1fr 360px;gap:56px;align-items:end}
+.h-tagline{font-family:'Fraunces',serif;font-style:italic;color:var(--dim);font-size:clamp(15px,1.4vw,21px);max-width:52ch;margin-top:20px;font-weight:400;line-height:1.5}
+.h-ub{display:block;height:4px;width:0;background:var(--red);margin-top:26px;transition:width 1.2s cubic-bezier(.22,.61,.36,1) .55s}
+.h-ub.v{width:180px}
+.h-marks{margin-top:40px;display:flex;gap:22px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--mu)}
+.h-marks span{display:flex;align-items:center;gap:7px}
+.h-marks span::before{content:"";width:11px;height:1px;background:var(--mu)}
+
+/* Meta card 3D */
+.meta-card{
+  background:rgba(255,255,255,.05);border:1px solid var(--lns);border-radius:10px;padding:26px 22px;
+  transform:rotateY(-7deg) rotateX(3deg) translateZ(0);
+  transition:transform .5s cubic-bezier(.22,.61,.36,1);
+  transform-style:preserve-3d;
+  box-shadow:0 40px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06),16px 16px 50px rgba(0,0,0,.3);
+}
+.meta-card:hover{transform:rotateY(-2deg) rotateX(1deg) translateZ(22px)}
+.mc-logo{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--ln)}
+.mc-logo img{width:44px;height:44px;border-radius:50%;background:#f0e8d6;padding:3px;object-fit:contain}
+.mc-logo span{font-family:'Fraunces',serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
+.mc-row{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--mu);margin-bottom:3px}
+.mc-row b{color:var(--ink);font-weight:500;font-size:12px;display:block;margin-bottom:4px}
+.mc-sep{height:1px;background:var(--ln);margin:9px 0}
+
+/* Scroll hint */
+.sh{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--mu);display:flex;flex-direction:column;align-items:center;gap:6px;animation:sha 2.5s ease-in-out infinite}
+.sh::after{content:"";width:1px;height:30px;background:linear-gradient(to bottom,var(--mu),transparent)}
+@keyframes sha{0%,100%{opacity:.3;transform:translateX(-50%) translateY(0)}50%{opacity:.85;transform:translateX(-50%) translateY(7px)}}
+
+/* ════════════════ TESIS ════════════════ */
+#s-thesis{min-height:80vh;padding:100px 110px}
+.thesis-wrap{
+  position:relative;border-radius:18px;
+  background:linear-gradient(135deg,var(--paper) 0%,var(--paper2) 100%);
+  padding:64px 72px;
+  transform:rotateX(1deg) rotateY(.4deg);
+  box-shadow:0 60px 120px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.08);
+  transform-style:preserve-3d;
+  transition:transform .5s;
+}
+.thesis-wrap:hover{transform:rotateX(.2deg) rotateY(0deg) translateZ(6px)}
+.bigq{font-family:'Fraunces',serif;font-weight:400;font-size:clamp(22px,2.7vw,46px);line-height:1.1;letter-spacing:-.02em;color:#1a1a12}
+.bigq em{font-style:italic;color:#8b3820}
+.attr{margin-top:24px;display:flex;align-items:center;gap:13px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#7a7060}
+.attr::before{content:"";width:32px;height:1px;background:#7a7060}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(0,0,0,.14);margin-top:44px}
+.kpi-c{padding:20px 0 6px;border-right:1px solid rgba(0,0,0,.09)}
+.kpi-c:last-child{border-right:none}
+.kpi-n{font-family:'Fraunces',serif;font-weight:600;font-variation-settings:'opsz' 144;font-size:clamp(34px,4vw,62px);line-height:.9;letter-spacing:-.025em;color:#1a1a12}
+.kpi-n span{font-size:.38em;color:#7a7060;font-style:italic;font-weight:400;margin-left:3px}
+.kpi-l{margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.17em;text-transform:uppercase;color:#7a7060;line-height:1.5}
+.kpi-c.hi .kpi-n{color:#8b3820}
+
+/* ════════════════ ACTIVOS ════════════════ */
+#s-assets{}
+.ah{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:end;margin-bottom:44px}
+.agrid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;perspective:1200px}
+/* 3D cards */
+.ac{
+  background:rgba(255,255,255,.04);border:1px solid var(--ln);border-radius:6px;padding:17px 18px;
+  display:flex;flex-direction:column;gap:7px;
+  transition:transform .4s cubic-bezier(.22,.61,.36,1),box-shadow .4s,border-color .4s;
+  transform-style:preserve-3d;cursor:default;
+}
+.ac:hover{transform:rotateX(-4deg) rotateY(4deg) translateZ(18px) scale(1.01);box-shadow:8px 24px 50px rgba(0,0,0,.55);border-color:rgba(212,72,41,.35)}
+.ac.s3{grid-column:span 3}.ac.s2{grid-column:span 2}.ac.s1{grid-column:span 1}.ac.s6{grid-column:span 6}
+.at{display:flex;justify-content:space-between;align-items:flex-start;gap:7px}
+.an{font-family:'Fraunces',serif;font-weight:500;font-size:16.5px;line-height:1.1;letter-spacing:-.01em}
+.atg{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);padding:2px 6px;border:1px solid var(--red);border-radius:1px;white-space:nowrap;flex-shrink:0}
+.atg.g{color:var(--leaf);border-color:var(--leaf)}.atg.a{color:var(--amber);border-color:var(--amber)}
+.ad{font-size:11.5px;line-height:1.45;color:var(--dim)}
+.aq{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:var(--mu);margin-top:auto}
+
+/* ════════════════ BRECHAS ════════════════ */
+#s-gaps{background:linear-gradient(160deg,var(--paper) 0%,var(--paper2) 100%);color:#1a1a12}
+#s-gaps h2.sec em{color:#8b3820}
+#s-gaps .kk{color:#8b3820}.kk.dk::before{background:#8b3820}
+.gl{display:grid;grid-template-columns:400px 1fr;gap:72px;align-items:start;margin-top:40px}
+.gi{
+  display:grid;grid-template-columns:40px 1fr;gap:14px;
+  padding:18px 0;border-bottom:1px solid rgba(0,0,0,.09);
+  transition:transform .28s;
+}
+.gi:hover{transform:translateX(7px)}
+.gi:first-child{border-top:1px solid rgba(0,0,0,.09)}
+.gn{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7a7060;letter-spacing:.1em;padding-top:2px}
+.gt{font-family:'Fraunces',serif;font-size:19px;font-weight:500;letter-spacing:-.01em}
+.gd{font-size:12px;line-height:1.5;color:#3d3a2e;margin-top:3px}
+.gm{display:flex;justify-content:space-between;align-items:center;margin-top:9px;gap:12px}
+.gb{flex:1;height:4px;background:rgba(0,0,0,.08);border-radius:1px;overflow:hidden;position:relative}
+.gf{position:absolute;left:0;top:0;bottom:0;background:#8b3820;width:0;transition:width 1.3s cubic-bezier(.22,.61,.36,1);border-radius:1px}
+.gp{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#7a7060;letter-spacing:.1em;flex-shrink:0}
+.gim{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:#5c5749;flex-shrink:0}
+
+/* Callout card floating */
+.gcall{
+  position:sticky;top:140px;
+  background:rgba(12,24,17,.97);color:var(--ink);
+  border:1px solid var(--lns);border-radius:12px;padding:34px 30px;
+  transform:rotateY(-5deg) rotateX(2deg) translateZ(0);
+  box-shadow:0 40px 80px rgba(0,0,0,.45),20px 16px 50px rgba(0,0,0,.22);
+  transition:transform .45s;
+}
+.gcall:hover{transform:rotateY(-1.5deg) rotateX(.5deg) translateZ(14px)}
+.gcq{font-family:'Fraunces',serif;font-style:italic;font-size:clamp(18px,1.9vw,30px);line-height:1.2;letter-spacing:-.015em;color:var(--ink)}
+.gcq b{font-style:normal;font-weight:600;color:var(--red)}
+.gcs{font-size:13px;line-height:1.6;color:var(--dim);margin-top:14px}
+.gcst{margin-top:20px;padding:14px 0;border-top:1px solid var(--ln);display:flex;align-items:baseline;gap:11px}
+.gcv{font-family:'Fraunces',serif;font-size:44px;font-weight:600;line-height:.9;letter-spacing:-.025em;color:var(--red)}
+.gcl{font-size:12px;line-height:1.4;color:var(--dim)}
+
+/* ════════════════ AUDITORÍA ════════════════ */
+#s-audit{}
+.aul{display:grid;grid-template-columns:1.1fr 1fr;gap:68px;margin-top:42px;align-items:start}
+.astep{
+  display:grid;grid-template-columns:36px 1fr;gap:17px;
+  padding:19px 20px;background:rgba(255,255,255,.03);
+  border:1px solid var(--ln);border-radius:6px;margin-bottom:11px;
+  transform:translateZ(0);transition:transform .35s,border-color .3s,background .3s;
+}
+.astep:hover{transform:translateZ(16px) rotateX(-1.5deg);border-color:rgba(228,160,53,.32);background:rgba(228,160,53,.04)}
+.astep.now{border-color:rgba(228,160,53,.32);background:rgba(228,160,53,.04)}
+.astep.late{opacity:.45}
+.asn{font-family:'Fraunces',serif;font-size:26px;font-weight:500;color:var(--amber);line-height:1;font-style:italic}
+.astep h5{font-family:'Fraunces',serif;font-weight:500;font-size:17px;letter-spacing:-.01em;margin-bottom:4px}
+.astep p{font-size:12px;line-height:1.5;color:var(--dim)}
+.abadge{display:inline-block;margin-top:7px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--amber);padding:2px 6px;border:1px solid rgba(228,160,53,.32);border-radius:1px}
+.aside h4{font-family:'Fraunces',serif;font-style:italic;font-weight:500;font-size:clamp(20px,2vw,32px);line-height:1.15;letter-spacing:-.01em;margin-bottom:13px}
+.apq{font-family:'Fraunces',serif;font-style:italic;font-size:16px;line-height:1.45;color:var(--dim);border-left:2px solid var(--red);padding-left:18px;margin:20px 0}
+.astat{display:flex;align-items:baseline;gap:13px;padding:14px 0;border-bottom:1px solid var(--ln)}
+.av{font-family:'Fraunces',serif;font-size:42px;font-weight:600;line-height:.9;letter-spacing:-.025em;color:var(--amber)}
+.al{font-size:12px;line-height:1.4;color:var(--dim)}
+
+/* ════════════════ CAPACIDADES ════════════════ */
+#s-caps{}
+.caps-hdr{margin-bottom:44px}
+.caps-g{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.ci{
+  padding:26px 36px 26px 0;border-top:1px solid var(--ln);
+  display:grid;grid-template-columns:48px 1fr;gap:20px;
+  transition:background .25s,transform .3s;
+  transform:translateZ(0);
+}
+.ci:hover{background:rgba(255,255,255,.025);transform:translateZ(8px)}
+.ci.right{padding-left:36px;padding-right:0}
+.ci:nth-child(2),.ci:nth-child(4),.ci:nth-child(6){border-left:1px solid var(--ln)}
+.cn{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--red);letter-spacing:.1em}
+.ci h4{font-family:'Fraunces',serif;font-size:24px;font-weight:500;line-height:1.1;letter-spacing:-.01em;margin-bottom:7px}
+.ci p{font-size:13px;line-height:1.55;color:var(--dim)}
+.ctools{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.ctools span{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);padding:2px 7px;border:1px solid var(--ln);border-radius:1px;transition:border-color .2s,color .2s}
+.ci:hover .ctools span{border-color:var(--lns);color:var(--dim)}
+
+/* ════════════════ STACK ════════════════ */
+#s-stack{}
+.stl{display:grid;grid-template-columns:1.1fr 1fr;gap:72px;margin-top:42px;align-items:start}
+.sk{display:grid;grid-template-columns:1fr 84px;align-items:center;gap:18px;padding:15px 0;border-bottom:1px solid var(--ln)}
+.sknm{font-family:'Fraunces',serif;font-weight:500;font-size:19px;letter-spacing:-.01em}
+.sksub{font-size:10.5px;color:var(--mu);font-family:'JetBrains Mono',monospace;margin-top:2px;letter-spacing:.05em;text-transform:uppercase}
+.skdots{display:flex;gap:4px;justify-content:flex-end}
+.skd{width:8px;height:8px;background:rgba(255,255,255,.09);border-radius:50%;transition:background .4s,transform .3s}
+.skd.on{background:var(--leaf)}
+.sk:hover .skd.on{transform:scale(1.25)}
+.ss h4{font-family:'Fraunces',serif;font-style:italic;font-weight:500;font-size:clamp(20px,2vw,30px);line-height:1.2;letter-spacing:-.01em;margin-bottom:17px}
+.ss p{font-size:14.5px;line-height:1.6;color:var(--dim);margin-bottom:15px}
+.ssq{font-family:'Fraunces',serif;font-style:italic;font-size:17px;line-height:1.4;border-left:2px solid var(--red);padding-left:18px;margin-top:26px;color:var(--ink)}
+
+/* ════════════════ ROADMAP ════════════════ */
+#s-roadmap{background:linear-gradient(160deg,var(--paper) 0%,var(--paper2) 100%);color:#1a1a12;min-height:auto;padding-bottom:100px}
+#s-roadmap h2.sec em{color:#8b3820}
+.rmhdr{margin-bottom:44px}
+.rmt{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative}
+.rmt::before{content:"";position:absolute;top:50px;left:0;right:0;height:1px;background:rgba(0,0,0,.12)}
+.lane{padding:70px 22px 0 0;border-right:1px solid rgba(0,0,0,.09);display:flex;flex-direction:column;position:relative}
+.lane:last-child{border-right:none;padding-right:0}
+.lane:not(:first-child){padding-left:22px}
+.lwhen{position:absolute;top:0;left:0;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.17em;text-transform:uppercase;color:#7a7060}
+.lane:not(:first-child) .lwhen{left:22px}
+.lwhen b{display:block;font-family:'Fraunces',serif;font-size:34px;font-weight:600;letter-spacing:-.02em;color:#8b3820;margin-top:4px;font-style:normal}
+.lwhen::before{content:"";position:absolute;bottom:-18px;left:0;width:9px;height:9px;border-radius:50%;background:#8b3820;box-shadow:0 0 0 3px rgba(139,56,32,.2)}
+.lane:not(:first-child) .lwhen::before{left:22px}
+.ri{padding:11px 0;border-top:1px solid rgba(0,0,0,.07);transition:padding-left .25s}
+.ri:hover{padding-left:5px}
+.ri h5{font-family:'Fraunces',serif;font-size:15px;font-weight:500;line-height:1.2;letter-spacing:-.01em;color:#1a1a12}
+.ri p{font-size:11px;line-height:1.45;color:#5a5749;margin-top:2px}
+.rt{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:#7a7060;margin-top:4px}
+
+/* ════════════════ CIERRE ════════════════ */
+#s-close{background:radial-gradient(ellipse at 28% 55%,#1c3326 0%,#0c1811 62%)}
+.clg{display:grid;grid-template-columns:1fr 1fr;gap:90px;align-items:start;margin-top:44px}
+.cl-h{font-family:'Fraunces',serif;font-weight:400;font-size:clamp(38px,5vw,80px);line-height:1;letter-spacing:-.025em}
+.cl-h em{font-style:italic;color:var(--red)}
+.cl-ask{font-family:'Fraunces',serif;font-style:italic;font-size:clamp(16px,1.7vw,26px);line-height:1.4;color:var(--dim);font-weight:400;margin-top:18px}
+.ns{display:flex;flex-direction:column;gap:0}
+.ni{padding:16px 0;border-bottom:1px solid var(--ln);display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
+.ni:first-child{border-top:1px solid var(--ln)}
+.nl{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.17em;text-transform:uppercase;color:var(--mu);padding-top:2px;white-space:nowrap}
+.ni b{display:block;font-family:'Fraunces',serif;font-weight:500;font-size:18.5px;letter-spacing:-.01em;margin-bottom:2px;font-style:normal}
+.ni span{font-size:12.5px;color:var(--dim)}
+.signoff{margin-top:44px;display:flex;flex-direction:column;gap:9px}
+.sigbar{width:56px;height:1px;background:var(--red)}
+.signm{font-family:'Fraunces',serif;font-style:italic;font-weight:500;font-size:20px;color:var(--ink);letter-spacing:-.01em;display:flex;align-items:center;gap:11px}
+.signm .dot{color:var(--red);font-style:normal}
+.sigrl{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--mu)}
+
+/* LOGO in cierre */
+.close-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.close-logo img{width:52px;height:52px;border-radius:50%;background:#f0e8d6;padding:4px;object-fit:contain;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.close-logo span{font-family:'Fraunces',serif;font-weight:600;font-size:22px;letter-spacing:-.01em}
+
+/* RESPONSIVE */
+@media(max-width:1100px){
+  section{padding:100px 52px 70px}
+  .hero-g,.clg{grid-template-columns:1fr}
+  .meta-card{transform:none;margin-top:32px}
+  .ah,.aul,.stl{grid-template-columns:1fr}
+  .gl{grid-template-columns:1fr}
+  .gcall{position:relative;top:0;transform:none;margin-top:32px}
+  .caps-g{grid-template-columns:1fr}
+  .ci.right{padding-left:0}
+  .ci:nth-child(2),.ci:nth-child(4),.ci:nth-child(6){border-left:none}
+  .rmt{grid-template-columns:1fr 1fr}
+  #snav{display:none}
+  .agrid{grid-template-columns:repeat(3,1fr)}
+  .ac.s3,.ac.s2,.ac.s6{grid-column:span 3}
+}
+@media(max-width:680px){
+  section{padding:80px 24px 60px}
+  .kpi-strip{grid-template-columns:1fr 1fr}
+  .agrid{grid-template-columns:1fr 1fr}
+  .ac.s3,.ac.s2,.ac.s6,.ac.s1{grid-column:span 2}
+  .rmt{grid-template-columns:1fr}
+  .lane{border-right:none;border-bottom:1px solid rgba(0,0,0,.08);padding-bottom:24px;margin-bottom:8px}
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="cur-r"></div>
+<div id="prog"></div>
+
+<!-- FIXED BACKGROUND -->
+<div id="bg">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+  <div class="orb o4"></div>
+</div>
+
+<!-- 3D RINGS -->
+<div id="rings">
+  <div class="ring rg1"></div>
+  <div class="ring rg2"></div>
+  <div class="ring rg3"></div>
+</div>
+
+<!-- TOPBAR -->
+<header id="topbar">
+  <div class="logo-w">
+    <img src="assets/aceapp-logo.png" alt="ACEAPP">
+    <span>ACEAPP · Inteligencia de Datos</span>
+  </div>
+  <div class="tbr">Confidencial · Mayo 2026</div>
+</header>
+
+<!-- SIDENAV -->
+<nav id="snav">
+  <div class="sni on" data-t="s-hero"><span class="snl">Portada</span><span class="snd"></span></div>
+  <div class="sni" data-t="s-thesis"><span class="snl">Tesis</span><span class="snd"></span></div>
+  <div class="sni" data-t="s-assets"><span class="snl">Activos</span><span class="snd"></span></div>
+  <div class="sni" data-t="s-gaps"><span class="snl">Brechas</span><span class="snd"></span></div>
+  <div class="sni" data-t="s-audit"><span class="snl">Auditoría</span><span class="snd"></span></div>
+  <div class="sni" data-t="s-caps"><span class="snl">Capacidades</span><span class="snd"></span></div>
+  <div class="sni" data-t="s-stack"><span class="snl">Equipo</span><span class="snd"></span></div>
+  <div class="sni" data-t="s-roadmap"><span class="snl">Roadmap</span><span class="snd"></span></div>
+  <div class="sni" data-t="s-close"><span class="snl">Cierre</span><span class="snd"></span></div>
+</nav>
+
+<div id="content">
+
+<!-- ══ HERO ══ -->
+<section id="s-hero" data-s="0">
+  <div class="hero-g">
+    <div>
+      <p class="kk r">Propuesta · Área de Inteligencia de Datos</p>
+      <h1 class="disp r d1" style="margin-top:18px">
+        Inteligencia<br><em>de Datos</em><br>para ACEAPP
+      </h1>
+      <span class="h-ub r d1"></span>
+      <p class="h-tagline r d2">De la planilla mensual al panel ejecutivo. De la auditoría reactiva al control anticipado. De la red prestacional al actor de gobierno sanitario.</p>
+      <div class="h-marks r d3">
+        <span>Diagnóstico</span>
+        <span>Capacidades</span>
+        <span>Hoja de ruta</span>
+      </div>
+    </div>
+    <div class="meta-card r d3">
+      <div class="mc-logo">
+        <img src="assets/aceapp-logo.png" alt="ACEAPP">
+        <span>ACEAPP</span>
+      </div>
+      <div class="mc-row">Equipo proponente<b>Ramiro Buente</b></div>
+      <div class="mc-row"><b>Joaquín Sciarretta</b></div>
+      <div class="mc-sep"></div>
+      <div class="mc-row">Organización<b>ACEAPP — Gestión de Servicios de Salud</b></div>
+      <div class="mc-sep"></div>
+      <div class="mc-row">Ciencia de Datos · UNLP<b>Mayo 2026</b></div>
+    </div>
+  </div>
+  <div class="sh">scroll</div>
+</section>
+
+<!-- ══ TESIS ══ -->
+<section id="s-thesis" data-s="1">
+  <p class="kk dk r">Lo primero que vimos · 02</p>
+  <div class="thesis-wrap r d1" style="margin-top:28px">
+    <p class="bigq r d2">
+      ACEAPP ya tiene <em>3.454 prestaciones</em> consolidadas, una cartilla de <em>267 policonsultorios</em> y un programa clínico <em>modelo</em>. Lo que falta no es información cruda — es <em>sistematización</em>, <em>automatización</em> y un <em>foco explícito</em> en el valor para el financiador.
+    </p>
+    <div class="attr r d3">Síntesis del relevamiento de bases · Abril 2026</div>
+    <div class="kpi-strip r d4">
+      <div class="kpi-c hi">
+        <div class="kpi-n" data-count="3454">0<span>reg</span></div>
+        <div class="kpi-l">Prestaciones<br>consolidadas</div>
+      </div>
+      <div class="kpi-c">
+        <div class="kpi-n" data-count="267">0<span>polis</span></div>
+        <div class="kpi-l">Policonsultorios<br>en cartilla</div>
+      </div>
+      <div class="kpi-c">
+        <div class="kpi-n" data-count="29">0<span>OS</span></div>
+        <div class="kpi-l">Obras sociales<br>activas</div>
+      </div>
+      <div class="kpi-c hi">
+        <div class="kpi-n" data-count="89" data-p="$" data-s="M">0<span>mill.</span></div>
+        <div class="kpi-l">Gasto total<br>relevado</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ACTIVOS ══ -->
+<section id="s-assets" data-s="2">
+  <div class="ah">
+    <div>
+      <p class="kk r">Diagnóstico · 03</p>
+      <h2 class="sec r d1" style="color:var(--ink);margin-top:14px">Qué información existe <em>hoy</em> en ACEAPP</h2>
+    </div>
+    <p class="r d2" style="color:var(--dim);font-size:15px;line-height:1.6;max-width:38ch">Un inventario de bases, sistemas y documentos activos. Cada activo es una palanca: el trabajo es conectarlos.</p>
+  </div>
+  <div class="agrid">
+    <div class="ac s3 r d1"><div class="at"><div class="an">Base prestacional consolidada</div><span class="atg g">consolidada</span></div><div class="ad">Mayo 2025 – Marzo 2026 · 29 obras sociales · OSDOP concentra 73,5% del gasto. Lista para automatizar.</div><div class="aq">3.454 reg · 1.741 afil · 496 prof · $89M</div></div>
+    <div class="ac s2 r d1"><div class="at"><div class="an">Cartilla Red IOMA</div><span class="atg g">limpia</span></div><div class="ad">Base maestra con KPIs precalculados, alertas semaforizadas, plazos de gestión.</div><div class="aq">267 polis · 72 partidos</div></div>
+    <div class="ac s1 r d1"><div class="at"><div class="an">Sistema operativo</div><span class="atg g">transaccional</span></div><div class="ad">Emite turnos, órdenes, prestaciones y libramientos en tiempo real.</div><div class="aq">SQL · API potencial</div></div>
+    <div class="ac s2 r d2"><div class="at"><div class="an">Cáncer de mama y útero</div><span class="atg g">modelo</span></div><div class="ad">158 casos · semaforización · KPIs con targets · cascada hasta tratamiento. Modelo a replicar.</div><div class="aq">~50 campos · 6 hojas</div></div>
+    <div class="ac s2 r d2"><div class="at"><div class="an">Seguimiento IOMA</div><span class="atg a">parcial</span></div><div class="ad">ACEAPP 4,6 d vs IOMA 63,5 d. Ventaja competitiva invisible sin datos.</div><div class="aq">Bitácora de altas</div></div>
+    <div class="ac s2 r d2"><div class="at"><div class="an">Histórico de facturación</div><span class="atg a">SI/NO mensual</span></div><div class="ad">11 meses por policonsultorio. Detecta abandono prestacional.</div><div class="aq">Sin importes</div></div>
+    <div class="ac s2 r d3"><div class="at"><div class="an">Brochures comerciales</div><span class="atg a">texto libre</span></div><div class="ad">Pipeline comercial. Requiere normalización de localidad y especialidades.</div><div class="aq">Oferta contenida</div></div>
+    <div class="ac s2 r d3"><div class="at"><div class="an">Power BI Odontología</div><span class="atg g">de referencia</span></div><div class="ad">Costo prevención $27K vs lesión $99K · ahorro estimado $131,9M. Modelo de informe a OS.</div><div class="aq">Tablero existente</div></div>
+    <div class="ac s2 r d3"><div class="at"><div class="an">Configuración maestra</div><span class="atg g">catálogos</span></div><div class="ad">Sectores, especialidades, puestos, trámites. Base relacional.</div><div class="aq">Diccionarios</div></div>
+    <div class="ac s6 r d4" style="background:linear-gradient(90deg,rgba(212,72,41,.07),transparent);border-color:rgba(212,72,41,.28);padding:13px 18px;min-height:auto"><div class="at"><div class="ad" style="color:var(--dim)">+ 11 informes ejecutivos (docx) y <strong style="color:var(--red)">6 presentaciones institucionales</strong> (pptx) en producción · plan estratégico 2026 firmado · identidad visual consolidada</div><span class="atg">producción activa</span></div></div>
+  </div>
+</section>
+
+<!-- ══ BRECHAS ══ -->
+<section id="s-gaps" data-s="3">
+  <p class="kk dk r">Diagnóstico · 04</p>
+  <h2 class="sec r d1" style="margin-top:14px">Qué bloquea hoy <em>la decisión</em></h2>
+  <div class="gl">
+    <div>
+      <p class="r d2" style="color:#3d3a2e;font-size:13.5px;line-height:1.65;max-width:40ch;margin-bottom:28px">Cinco brechas concretas — no son problemas técnicos abstractos: son lo que hoy impide convertir lo que ACEAPP sabe en valor para los financiadores.</p>
+      <div class="gi r d2"><div class="gn">01</div><div><div class="gt">Diagnóstico CIE-10 incompleto</div><div class="gd">El 41% de las prestaciones no tiene diagnóstico cargado. Sin esto no hay análisis epidemiológico posible.</div><div class="gm"><div class="gb"><div class="gf" data-w="41"></div></div><div class="gp">41%</div><div class="gim">Bloqueo · Alto</div></div></div></div>
+      <div class="gi r d3"><div class="gn">02</div><div><div class="gt">Edad y sexo no estructurados</div><div class="gd">Sin estos campos no hay tasas por grupo etario, ni segmentación, ni screening dirigido.</div><div class="gm"><div class="gb"><div class="gf" data-w="65"></div></div><div class="gp">65%</div><div class="gim">Bloqueo · Alto</div></div></div></div>
+      <div class="gi r d4"><div class="gn">03</div><div><div class="gt">Carga manual y mensual</div><div class="gd">Las planillas se consolidan a mano cada mes. No hay pipeline automatizado al Power BI.</div><div class="gm"><div class="gb"><div class="gf" data-w="80"></div></div><div class="gp">80%</div><div class="gim">Operativo · Alto</div></div></div></div>
+      <div class="gi r d5"><div class="gn">04</div><div><div class="gt">Sin trazabilidad histórica</div><div class="gd">Cada planilla es una foto del mes. Imposible reconstruir el "antes" de un cambio.</div><div class="gm"><div class="gb"><div class="gf" data-w="55"></div></div><div class="gp">55%</div><div class="gim">Auditable · Medio</div></div></div></div>
+      <div class="gi r d6"><div class="gn">05</div><div><div class="gt">Sin alertas ni benchmark</div><div class="gd">El modelo ROJO/AMARILLO existe en cáncer de mama pero no se replica al resto.</div><div class="gm"><div class="gb"><div class="gf" data-w="72"></div></div><div class="gp">72%</div><div class="gim">Comercial · Alto</div></div></div></div>
+    </div>
+    <div class="gcall r d3">
+      <p class="gcq">"No falta información —<br>falta que la información <b>hable</b>."</p>
+      <p class="gcs">Cada brecha tiene una solución técnica puntual. La propuesta empieza por las de mayor impacto en la decisión del financiador.</p>
+      <div class="gcst"><div class="gcv">41%</div><div class="gcl">de prestaciones sin diagnóstico CIE-10 — el dato más urgente para habilitar el análisis clínico.</div></div>
+      <div class="gcst"><div class="gcv">4,6d</div><div class="gcl">promedio ACEAPP vs 63,5d del sistema — ventaja invisible sin datos que la demuestren.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ AUDITORÍA ══ -->
+<section id="s-audit" data-s="4">
+  <p class="kk r">Eje destacado · 05</p>
+  <h2 class="sec r d1" style="color:var(--ink);margin-top:14px">Auditoría asistida<br><em>por análisis de datos</em></h2>
+  <div class="aul">
+    <div>
+      <div class="astep now r d2"><div class="asn">1</div><div><h5>Detección de outliers</h5><p>Identificación estadística de prestadores con frecuencia atípica, afiliados hiper-frecuentes y pares diagnóstico-código incoherentes. Métodos z-score e isolation forest sobre la base consolidada.</p><span class="abadge">Quick win · semanas</span></div></div>
+      <div class="astep now r d3"><div class="asn">2</div><div><h5>Auditoría asistida</h5><p>El sistema marca, el auditor decide. Cola de casos priorizados por riesgo con justificación visible. Trazabilidad completa de revisiones.</p><span class="abadge">2–4 meses</span></div></div>
+      <div class="astep late r d4"><div class="asn">3</div><div><h5>Análisis de adecuación clínica</h5><p>Procesamiento de informes médicos para pertinencia. Requiere integración con HCE y datos limpios — horizonte 12+ meses.</p><span class="abadge">Horizonte 12m+</span></div></div>
+    </div>
+    <div class="aside">
+      <h4 class="r d2">"Detectar antes,<br>discutir mejor."</h4>
+      <p class="r d3" style="font-size:14px;line-height:1.6;color:var(--dim)">El primer paso no es reemplazar al auditor: es darle una cola de casos ordenada por riesgo, con criterio explícito y trazable.</p>
+      <div class="apq r d3">El equipo dejó de revisar todo y empezó a revisar lo que importa, en el orden que importa.</div>
+      <div class="astat r d4"><div class="av">17/59</div><div class="al">Prestadores que explican el 80% del gasto — punto de partida natural del análisis</div></div>
+      <div class="astat r d5"><div class="av">5</div><div class="al">Afiliados hiper-frecuentes (&gt;10 prestaciones en 11 meses) ya identificados</div></div>
+      <div class="astat r d6"><div class="av">2,0%</div><div class="al">Tasa de débitos actual sobre cápitas IOMA — línea base contra la que medir mejora</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CAPACIDADES ══ -->
+<section id="s-caps" data-s="5">
+  <div class="caps-hdr">
+    <p class="kk r">Propuesta · 06</p>
+    <h2 class="sec r d1" style="color:var(--ink);margin-top:14px">Seis capacidades que el <em>Área</em> entrega</h2>
+    <p class="r d2" style="color:var(--dim);font-size:14px;line-height:1.65;margin-top:13px;max-width:54ch">Productos concretos, no servicios genéricos. Cada capacidad parte de lo que ya existe en ACEAPP.</p>
+  </div>
+  <div class="caps-g">
+    <div class="ci r d2"><div class="cn">01</div><div><h4>Pipeline de datos automatizado</h4><p>Carga programada hacia Power BI. Validación de calidad por columna, catálogo maestro, snapshot histórico diario.</p><div class="ctools"><span>Python</span><span>SQL</span><span>Power BI</span></div></div></div>
+    <div class="ci right r d2"><div class="cn">02</div><div><h4>Sistema de alertas operativas</h4><p>Modelo ROJO/AMARILLO del cáncer de mama replicado al universo: poli sin facturar, demora atípica, débito anómalo.</p><div class="ctools"><span>Reglas + estadística</span><span>Email</span></div></div></div>
+    <div class="ci r d3"><div class="cn">03</div><div><h4>Tablero ejecutivo en tiempo real</h4><p>Vista única para presidencia: volumen, gasto, alertas, pipeline IOMA. Listo para TV de oficina.</p><div class="ctools"><span>Power BI</span><span>Metabase</span></div></div></div>
+    <div class="ci right r d3"><div class="cn">04</div><div><h4>Auditoría asistida</h4><p>Cola de casos priorizados por riesgo. Outliers, peer-grouping, scoring por prestador y afiliado. Trazable.</p><div class="ctools"><span>scikit-learn</span><span>Isolation Forest</span></div></div></div>
+    <div class="ci r d4"><div class="cn">05</div><div><h4>Informes mensuales por OS</h4><p>Plantilla con benchmark anonimizado + recomendaciones. Modelo: informe odontología ($131,9M).</p><div class="ctools"><span>Templating</span><span>Word/PDF</span></div></div></div>
+    <div class="ci right r d4"><div class="cn">06</div><div><h4>Modelos predictivos prudentes</h4><p>Demanda por OS, policonsultorios en riesgo, segmentación de afiliados. Interpretables, no caja negra.</p><div class="ctools"><span>Series de tiempo</span><span>Clustering</span></div></div></div>
+  </div>
+</section>
+
+<!-- ══ STACK ══ -->
+<section id="s-stack" data-s="6">
+  <p class="kk r">Quiénes y con qué · 07</p>
+  <h2 class="sec r d1" style="color:var(--ink);margin-top:14px">Lo que <em>sabemos</em> hacer</h2>
+  <div class="stl">
+    <div class="r d2">
+      <div class="sk"><div><div class="sknm">Limpieza y consolidación</div><div class="sksub">Pandas · validación · pipelines reproducibles</div></div><div class="skdots"><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div></div></div>
+      <div class="sk"><div><div class="sknm">Visualización ejecutiva</div><div class="sksub">Power BI · Metabase · diseño cuidado</div></div><div class="skdots"><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd"></div></div></div>
+      <div class="sk"><div><div class="sknm">Estadística aplicada</div><div class="sksub">Outliers · series · regresión · clustering</div></div><div class="skdots"><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd"></div></div></div>
+      <div class="sk"><div><div class="sknm">Machine learning interpretable</div><div class="sksub">scikit-learn · árboles · isolation forest</div></div><div class="skdots"><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd"></div></div></div>
+      <div class="sk"><div><div class="sknm">Diseño de KPIs y reportes</div><div class="sksub">Glosario · fórmulas · responsables</div></div><div class="skdots"><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd"></div></div></div>
+      <div class="sk"><div><div class="sknm">SQL y modelado relacional</div><div class="sksub">Esquemas · joins · catálogo maestro</div></div><div class="skdots"><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd on"></div><div class="skd"></div></div></div>
+    </div>
+    <div class="ss r d2">
+      <h4>Qué gana ACEAPP.</h4>
+      <p>Estas herramientas convierten lo que existe en planillas y exports en <strong style="color:var(--ink)">decisiones más rápidas, mejor argumentadas y trazables</strong>.</p>
+      <p>La auditoría empieza por los casos que la estadística marca como prioritarios — más cobertura con el mismo equipo. Los informes con benchmark <strong style="color:var(--ink)">diferencian a ACEAPP frente a competidores</strong>.</p>
+      <div class="ssq">El stack no es el fin: es lo que vuelve a ACEAPP un actor de gobierno sanitario, no solo una red prestacional.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ROADMAP ══ -->
+<section id="s-roadmap" data-s="7">
+  <div class="rmhdr">
+    <p class="kk dk r">Plan · 08</p>
+    <h2 class="sec r d1" style="margin-top:14px">Cuatro etapas, <em>diecisiete productos</em></h2>
+    <p class="r d2" style="color:#3d3a2e;font-size:13.5px;line-height:1.65;margin-top:12px;max-width:56ch">De la infraestructura base al observatorio sectorial. Cada entregable parte de lo que ya existe.</p>
+  </div>
+  <div class="rmt">
+    <div class="lane r d1">
+      <div class="lwhen">Etapa 1<b>0–2 meses</b></div>
+      <div class="ri"><h5>Inmersión y mapa de datos</h5><p>Documentar fuentes, esquemas y dueños.</p><span class="rt">Fundación</span></div>
+      <div class="ri"><h5>Glosario de KPIs v1</h5><p>Fórmula, frecuencia y responsable. Insumo transversal.</p><span class="rt">Documento base</span></div>
+      <div class="ri"><h5>Consolidación prestacional</h5><p>Script que unifica planillas en base única.</p><span class="rt">Infraestructura</span></div>
+      <div class="ri"><h5>Reporte de calidad de datos</h5><p>Cuantifica gaps y prioriza qué pedir a sistemas.</p><span class="rt">Diagnóstico</span></div>
+    </div>
+    <div class="lane r d2">
+      <div class="lwhen">Etapa 2<b>2–4 meses</b></div>
+      <div class="ri"><h5>Pipeline automatizado al Power BI</h5><p>Carga programada con validaciones y snapshot diario.</p><span class="rt">Infraestructura</span></div>
+      <div class="ri"><h5>Tablero ejecutivo v1</h5><p>Vista única para presidencia: volumen, gasto, alertas.</p><span class="rt">Producto</span></div>
+      <div class="ri"><h5>Informes IOMA y OS estandarizados</h5><p>Plantillas reproducibles del cierre mensual.</p><span class="rt">Entregable</span></div>
+      <div class="ri"><h5>Cierre cascada cáncer de mama</h5><p>Seguimiento hasta tratamiento para gerencia.</p><span class="rt">Producto</span></div>
+    </div>
+    <div class="lane r d3">
+      <div class="lwhen">Etapa 3<b>4–7 meses</b></div>
+      <div class="ri"><h5>Sistema de alertas operativas</h5><p>ROJO/AMARILLO replicado al universo prestacional.</p><span class="rt">Producto</span></div>
+      <div class="ri"><h5>Modelo de outliers · auditoría</h5><p>Cola de casos priorizada por riesgo.</p><span class="rt">Modelo</span></div>
+      <div class="ri"><h5>Informe por OS con benchmark</h5><p>Comparación anonimizada + recomendaciones.</p><span class="rt">Producto</span></div>
+      <div class="ri"><h5>Mapa territorial v1</h5><p>Cruce cartilla + partidos. Brechas de cobertura.</p><span class="rt">Análisis</span></div>
+    </div>
+    <div class="lane r d4">
+      <div class="lwhen">Etapa 4<b>7–12 meses</b></div>
+      <div class="ri"><h5>Predicción de demanda por OS</h5><p>Series mensuales para negociación de cápitas.</p><span class="rt">Modelo</span></div>
+      <div class="ri"><h5>Predicción de baja de polis</h5><p>Clasificación que anticipa abandonos.</p><span class="rt">Modelo</span></div>
+      <div class="ri"><h5>Demo deck para captación</h5><p>Paquete comercial con datos anonimizados.</p><span class="rt">Comercial</span></div>
+      <div class="ri"><h5>Observatorio de datos</h5><p>Posiciona a ACEAPP como referente sectorial.</p><span class="rt">Posicionamiento</span></div>
+      <div class="ri"><h5>Auditoría asistida v2</h5><p>Procesamiento de texto y adecuación clínica.</p><span class="rt">Visión</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CIERRE ══ -->
+<section id="s-close" data-s="8">
+  <p class="kk am r">El pedido · 09</p>
+  <div class="clg">
+    <div>
+      <div class="close-logo r d1">
+        <img src="assets/aceapp-logo.png" alt="ACEAPP">
+        <span>ACEAPP</span>
+      </div>
+      <h2 class="cl-h r d1">Un <em>Área de<br>Inteligencia<br>de Datos</em><br>al servicio<br>de ACEAPP.</h2>
+      <p class="cl-ask r d2">No para crear desde cero — para sistematizar lo que ya existe, anticipar lo que se viene y volver visible el valor que ACEAPP entrega cada mes.</p>
+    </div>
+    <div>
+      <div class="ns r d3">
+        <div class="ni"><div class="nl">Próximo paso</div><div><b>Reunión de definición de alcance</b><span>Prioridades, acceso a fuentes y forma de trabajo conjunta.</span></div></div>
+        <div class="ni"><div class="nl">Primera entrega</div><div><b>Mapa de datos + Glosario KPIs v1</b><span>Organiza lo que existe y define indicadores clave.</span></div></div>
+        <div class="ni"><div class="nl">Pregunta abierta</div><div><b>¿Por dónde empezamos?</b><span>Pipeline · Outliers auditoría · Informe OS estandarizado.</span></div></div>
+      </div>
+      <div class="signoff r d5">
+        <div class="sigbar"></div>
+        <div class="signm"><span>Ramiro Buente</span><span class="dot">·</span><span>Joaquín Sciarretta</span></div>
+        <div class="sigrl">Ciencia de Datos · Universidad Nacional de La Plata</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /content -->
+
+<script>
+// ── CURSOR ──
+const cur = document.getElementById('cur');
+const curR = document.getElementById('cur-r');
+let mx=window.innerWidth/2, my=window.innerHeight/2, rx=mx, ry=my;
+document.addEventListener('mousemove', e => {
+  mx=e.clientX; my=e.clientY;
+  cur.style.left=mx+'px'; cur.style.top=my+'px';
+});
+(function loop(){
+  rx+=(mx-rx)*.16; ry+=(my-ry)*.16;
+  curR.style.left=rx+'px'; curR.style.top=ry+'px';
+  requestAnimationFrame(loop);
+})();
+
+// ── PROGRESS ──
+const prog = document.getElementById('prog');
+window.addEventListener('scroll', ()=>{
+  const s=document.documentElement.scrollTop;
+  const h=document.documentElement.scrollHeight-document.documentElement.clientHeight;
+  prog.style.width=(s/h*100)+'%';
+},{passive:true});
+
+// ── TOPBAR ──
+window.addEventListener('scroll',()=>{
+  document.getElementById('topbar').classList.toggle('sc', window.scrollY>60);
+},{passive:true});
+
+// ── PARALLAX ORBS ──
+const orbs = document.querySelectorAll('.orb');
+window.addEventListener('scroll',()=>{
+  const y = window.scrollY;
+  orbs[0].style.transform=`translate(${y*0.04}px,${y*-0.08}px)`;
+  orbs[1].style.transform=`translate(${y*-0.05}px,${y*0.06}px)`;
+  orbs[2].style.transform=`translate(${y*0.03}px,${y*0.04}px)`;
+  orbs[3].style.transform=`translate(${y*-0.02}px,${y*-0.05}px)`;
+},{passive:true});
+
+// ── MOUSE PARALLAX on BG ──
+document.addEventListener('mousemove', e=>{
+  const nx=(e.clientX/window.innerWidth-.5)*2;
+  const ny=(e.clientY/window.innerHeight-.5)*2;
+  orbs[0].style.transform=`translate(${nx*18}px,${ny*14}px)`;
+  orbs[3].style.transform=`translate(${nx*-12}px,${ny*10}px)`;
+});
+
+// ── SIDENAV ──
+const snis = document.querySelectorAll('.sni');
+const secs = document.querySelectorAll('section[data-s]');
+function updNav(){
+  let active=0;
+  secs.forEach((s,i)=>{
+    const r=s.getBoundingClientRect();
+    if(r.top<=window.innerHeight*.45) active=i;
+  });
+  snis.forEach((n,i)=>n.classList.toggle('on',i===active));
+}
+window.addEventListener('scroll',updNav,{passive:true});
+snis.forEach(n=>n.addEventListener('click',()=>{
+  const t=document.getElementById(n.dataset.t);
+  if(t) window.scrollTo({top:t.offsetTop,behavior:'smooth'});
+}));
+
+// ── INTERSECTION OBSERVER ──
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting) return;
+    const el=e.target;
+    if(el.classList.contains('r')) el.classList.add('v');
+    if(el.classList.contains('h-ub')) el.classList.add('v');
+    if(el.classList.contains('gf')) el.style.width=el.dataset.w+'%';
+    if(el.classList.contains('kpi-n') && el.dataset.count) countUp(el);
+    io.unobserve(el);
+  });
+},{threshold:0.14});
+
+document.querySelectorAll('.r,.h-ub,.gf,.kpi-n[data-count]').forEach(el=>io.observe(el));
+
+// ── COUNT UP ──
+function countUp(el){
+  const target=parseInt(el.dataset.count);
+  const pre=el.dataset.p||'';
+  const suf=el.dataset.s||'';
+  const unit=el.querySelector('span');
+  const uhtml=unit?unit.outerHTML:'';
+  const dur=1500; const t0=performance.now();
+  function tick(now){
+    const t=Math.min((now-t0)/dur,1);
+    const ease=1-Math.pow(1-t,3);
+    const val=Math.round(ease*target);
+    const disp=val>=1000?val.toLocaleString('es-AR'):val;
+    el.innerHTML=pre+disp+suf+uhtml;
+    if(t<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+</script>
+</body>
+</html>
